@@ -1,229 +1,12 @@
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical, ScrollableContainer
+from textual.containers import Container, Horizontal
 from textual.widgets import (
-    Header, Footer, Static, Button, DataTable, Input, Select,
-    Label, TextArea, Rule
+    Header, Footer, Static, Button, DataTable, Input
 )
-from textual.screen import ModalScreen
 from textual import on
-from models.item import InventoryItem, timestamp_now
-
-
-CATEGORIES = [
-    "Perangkat Keras", "Perangkat Lunak",
-    "Jaringan", "Lainnya"
-]
-CONDITIONS = ["Baik", "Perlu Perbaikan", "Rusak"]
-
-
-
-class ItemForm(ModalScreen):
-    CSS = """
-    ItemForm {
-        align: center middle;
-    }
-
-    #dialog {
-        width: 76;
-        max-width: 95%;
-        height: 90%;
-        max-height: 95%;
-        border: round #4f8cff;
-        background: #111827;
-        padding: 1 2;
-    }
-
-    #form-content {
-        height: 1fr;
-        width: 100%;
-        overflow-y: auto;
-        scrollbar-gutter: stable;
-    }
-
-    .field-label {
-        margin-top: 1;
-        color: #bfdbfe;
-    }
-
-    Input, Select {
-        width: 100%;
-        margin-bottom: 1;
-    }
-
-    TextArea {
-        width: 100%;
-        height: 8;
-        margin-bottom: 1;
-    }
-
-    #form-buttons {
-        height: 3;
-        align-horizontal: right;
-    }
-
-    #form-error {
-        color: #fca5a5;
-        height: auto;
-    }
-    """
-
-    BINDINGS = [("escape", "dismiss(None)", "Batal")]
-
-    def __init__(self, item: dict | None = None):
-        super().__init__()
-        self.item = item or {}
-
-    def compose(self) -> ComposeResult:
-        editing = bool(self.item)
-
-        yield Container(
-            Static(
-                "UBAH DATA BARANG" if editing else "TAMBAH BARANG",
-                id="form-title"
-            ),
-
-            ScrollableContainer(
-                Label("Kode barang *", classes="field-label"),
-                Input(
-                    value=str(self.item.get("code", "")),
-                    placeholder="Contoh: PC-001",
-                    id="code"
-                ),
-
-                Label("Nama barang *", classes="field-label"),
-                Input(
-                    value=str(self.item.get("name", "")),
-                    placeholder="Contoh: Komputer Lab 1",
-                    id="name"
-                ),
-
-                Label("Kategori *", classes="field-label"),
-                Select(
-                    [(x, x) for x in CATEGORIES],
-                    value=self.item.get("category", CATEGORIES[0]),
-                    id="category"
-                ),
-
-                Label("Jumlah *", classes="field-label"),
-                Input(
-                    value=str(self.item.get("quantity", 1)),
-                    placeholder="Jumlah unit",
-                    id="quantity"
-                ),
-
-                Label("Kondisi *", classes="field-label"),
-                Select(
-                    [(x, x) for x in CONDITIONS],
-                    value=self.item.get("condition", CONDITIONS[0]),
-                    id="condition"
-                ),
-
-                Label("Lokasi *", classes="field-label"),
-                Input(
-                    value=str(self.item.get("location", "")),
-                    placeholder="Contoh: Lab A / Rak 2",
-                    id="location"
-                ),
-
-                Label("Catatan", classes="field-label"),
-                TextArea(
-                    self.item.get("notes", ""),
-                    id="notes"
-                ),
-
-                id="form-content"
-            ),
-
-            Static("", id="form-error"),
-
-            Horizontal(
-                Button("Simpan", variant="primary", id="save"),
-                Button("Batal", variant="default", id="cancel"),
-                id="form-buttons"
-            ),
-
-            id="dialog"
-        )
-
-    @on(Button.Pressed, "#cancel")
-    def cancel(self, event):
-        self.dismiss(None)
-
-    @on(Button.Pressed, "#save")
-    def save(self, event):
-        code = self.query_one("#code", Input).value.strip()
-        name = self.query_one("#name", Input).value.strip()
-        category = self.query_one("#category", Select).value
-        quantity_text = self.query_one("#quantity", Input).value.strip()
-        condition = self.query_one("#condition", Select).value
-        location = self.query_one("#location", Input).value.strip()
-        notes = self.query_one("#notes", TextArea).text.strip()
-
-        error = ""
-
-        if not code or not name or not location:
-            error = "Kode, nama, dan lokasi wajib diisi."
-
-        elif category is Select.BLANK or condition is Select.BLANK:
-            error = "Pilih kategori dan kondisi barang."
-
-        else:
-            try:
-                quantity = int(quantity_text)
-
-                if quantity < 0:
-                    error = "Jumlah tidak boleh negatif."
-
-            except ValueError:
-                error = "Jumlah harus berupa bilangan bulat."
-
-        if error:
-            self.query_one("#form-error", Static).update(error)
-            return
-
-        self.dismiss({
-            "code": code,
-            "name": name,
-            "category": str(category),
-            "quantity": quantity,
-            "condition": str(condition),
-            "location": location,
-            "notes": notes,
-            "updated_at": timestamp_now()
-        })
-
-
-
-class ConfirmDelete(ModalScreen):
-    CSS = """
-    ConfirmDelete { align: center middle; }
-    #confirm-box { width: 60; max-width: 90%; height: auto; border: round #ef4444; background: #111827; padding: 2; }
-    #confirm-buttons { height: 3; align-horizontal: right; }
-    """
-    def __init__(self, item: dict):
-        super().__init__()
-        self.item = item
-
-    def compose(self) -> ComposeResult:
-        yield Container(
-            Static("HAPUS DATA BARANG", classes="title"),
-            Static(f"Yakin menghapus '{self.item['name']}' ({self.item['code']})?"),
-            Static("Tindakan ini tidak dapat dibatalkan."),
-            Horizontal(
-                Button("Ya, hapus", variant="error", id="yes"),
-                Button("Batal", id="no"),
-                id="confirm-buttons"
-            ),
-            id="confirm-box"
-        )
-
-    @on(Button.Pressed, "#yes")
-    def yes(self, event):
-        self.dismiss(True)
-
-    @on(Button.Pressed, "#no")
-    def no(self, event):
-        self.dismiss(False)
+from models.item import timestamp_now
+from ui.ItemForm import ItemForm
+from ui.Delete import ConfirmDelete
 
 
 class InventoryApp(App):
@@ -235,8 +18,8 @@ class InventoryApp(App):
     #summary-line { color: #bfdbfe; }
     #toolbar { height: 3; margin: 0 2 1 2; }
     #search { width: 1fr; }
-    #table-wrap { height: 1fr; margin: 0 2; border: round #263b59; }
-    DataTable { height: 1fr; }
+    #table-wrap {width: 100%;height: 1fr;margin: 1 2;}
+    DataTable {width: 100%;height: 1fr;}
     #action-bar { height: 3; margin: 1 2; align-horizontal: left; }
     #status { height: 2; padding: 0 2; color: #93c5fd; }
     Button { margin-right: 1; }
@@ -325,12 +108,11 @@ class InventoryApp(App):
         if table.row_count == 0 or table.cursor_row is None:
             self.query_one("#status", Static).update("Belum ada barang yang dipilih.")
             return None
-        try:
-            row_key = table.get_row_at(table.cursor_row)
-            item_id = int(row_key[0])
-            return next((x for x in self.filtered_items if int(x["id"]) == item_id), None)
-        except (IndexError, TypeError, ValueError):
+        row_index = table.cursor_row
+        if row_index < 0 or row_index >= len(self.filtered_items):
+            self.query_one("#status", Static).update("Belum ada barang yang dipilih.")
             return None
+        return self.filtered_items[row_index]
 
     def action_add_item(self):
         self.push_screen(ItemForm(), self.on_add_result)
