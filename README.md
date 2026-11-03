@@ -1,14 +1,14 @@
 # Mini Sistem Manajemen Inventaris Laboratorium Komputer
 
-Aplikasi CLI interaktif menggunakan **Python + Textual** dengan **MySQL sebagai satu-satunya penyimpanan aktif**. Semua fitur tambah, tampil, ubah, hapus, dan cari bekerja pada tabel MySQL `inventory_items`.
+Aplikasi terminal interaktif menggunakan **Python + Textual** dan **MySQL**. Data dikelola dalam tiga tabel: `lab`, `komputer`, dan `item_lab`.
 
 ## Fitur
-- Menampilkan inventaris dalam tabel terminal.
-- Tambah, lihat, ubah, dan hapus data barang (CRUD).
-- Pencarian langsung berdasarkan kode, nama, kategori, kondisi, lokasi, dan catatan.
-- Validasi input wajib, jumlah bilangan bulat nonnegatif, dan kode barang unik.
-- Ringkasan jenis barang, total unit, unit berkondisi baik, dan hasil pencarian.
-- Contoh data awal agar aplikasi langsung bisa dicoba.
+- Mengelola Lab beserta jumlah komputer dan item yang dihitung langsung dari tabel terkait.
+- Mengelola komputer beserta kode PC, monitor, CPU, keyboard, mouse, kondisi, dan catatan.
+- Mengelola item Lab beserta kode, nama, kondisi, dan catatan.
+- Kondisi tersedia sebagai enum: `Baik`, `Perlu Perbaikan`, dan `Rusak`.
+- Pencarian langsung dan CRUD untuk setiap jenis data.
+- Foreign key `id_lab` menghubungkan komputer dan item Lab ke tabel Lab.
 
 ## Struktur folder
 
@@ -66,7 +66,7 @@ pip install -r requirements.txt
 
 1. Jalankan MySQL Server melalui MySQL Workbench, XAMPP, Laragon, atau layanan MySQL yang kamu gunakan.
 2. Buka MySQL Workbench, pilih koneksi lokal, lalu buka tab SQL baru.
-3. Salin dan jalankan seluruh isi file `sql/schema.sql`. File ini membuat database `lab_inventory`, tabel `inventory_items`, dan tiga contoh data.
+3. Salin dan jalankan seluruh isi file `sql/schema.sql`. File ini membuat database `lab_inventory` serta tabel `lab`, `komputer`, dan `item_lab`.
 4. Atur variabel lingkungan. Contoh untuk PowerShell:
 
 ```powershell
@@ -80,7 +80,7 @@ python main.py
 
 Ganti `password_mysql_kamu` dengan password MySQL lokalmu. Jika akun MySQL tidak memakai password, set `MYSQL_PASSWORD` ke string kosong. Jangan unggah password asli ke GitHub.
 
-Jalankan `python main.py`. Program langsung menggunakan MySQL dan akan membuat tabel `inventory_items` jika database `lab_inventory` sudah ada. Data contoh sudah disiapkan oleh `sql/schema.sql`. Jika gagal, periksa apakah MySQL Server sedang berjalan, kredensial benar, dan database sudah dibuat.
+Jalankan `python main.py`. Program akan terhubung ke MySQL dan membuat tabel `lab`, `komputer`, dan `item_lab` secara otomatis jika belum tersedia. Jika gagal, periksa apakah MySQL Server sedang berjalan, kredensial benar, dan database sudah dibuat.
 
 ## 4. Cara menggunakan aplikasi
 
@@ -93,12 +93,12 @@ Jalankan `python main.py`. Program langsung menggunakan MySQL dan akan membuat t
 
 Pada terminal sempit, perbesar jendela terminal supaya semua kolom terlihat.
 
-## 5. Data barang
+## 5. Struktur data
 
-- Kode barang harus unik, misalnya `PC-001`.
-- Nama, kategori, jumlah, kondisi, dan lokasi digunakan untuk mencatat inventaris.
-- Jumlah harus bilangan bulat nol atau lebih.
-- Kondisi: `Baik`, `Perlu Perbaikan`, atau `Rusak`.
+- Lab memiliki `id` dan `nama_lab`; jumlah komputer serta item dihitung dari data terkait.
+- Komputer memiliki `id`, `id_lab`, `kode_pc`, `monitor`, `cpu`, `keyboard`, `mouse`, `kondisi`, dan `catatan`.
+- Item Lab memiliki `id`, `id_lab`, `kode_item`, `nama_item`, `kondisi`, dan `catatan`.
+- Semua enum kondisi menggunakan pilihan `Baik`, `Perlu Perbaikan`, atau `Rusak`.
 
 ## Catatan pengembangan
 

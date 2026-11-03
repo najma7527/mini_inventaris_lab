@@ -1,27 +1,27 @@
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal
-from textual.widgets import (
-     Static, Button
-)
+from textual.widgets import Static, Button
 from textual.screen import ModalScreen
 from textual import on
-from models.item import timestamp_now
+
 
 class ConfirmDelete(ModalScreen):
     CSS = """
     ConfirmDelete { align: center middle; }
-    #confirm-box { width: 60; max-width: 90%; height: auto; border: round #ef4444; background: #111827; padding: 2; }
+    #confirm-box { width: 64; max-width: 92%; height: auto; border: round #ef4444; background: #111827; padding: 2; }
     #confirm-buttons { height: 3; align-horizontal: right; }
     """
-    def __init__(self, item: dict):
+
+    def __init__(self, title: str, description: str):
         super().__init__()
-        self.item = item
+        self.title = title
+        self.description = description
 
     def compose(self) -> ComposeResult:
         yield Container(
-            Static("HAPUS DATA BARANG", classes="title"),
-            Static(f"Yakin menghapus '{self.item['name']}' ({self.item['code']})?"),
-            Static("Tindakan ini tidak dapat dibatalkan."),
+            Static(self.title, classes="title"),
+            Static(self.description),
+            Static("Tindakan ini tidak dapat dibatalkan.", id="warning"),
             Horizontal(
                 Button("Ya, hapus", variant="error", id="yes"),
                 Button("Batal", id="no"),
