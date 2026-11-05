@@ -16,8 +16,6 @@ Aplikasi terminal interaktif menggunakan **Python + Textual** dan **MySQL**. Dat
 lab_inventory/
 ├── main.py
 ├── requirements.txt
-├── models/
-│   └── item.py
 ├── storage/
 │   ├── base.py
 │   ├── json_storage.py
