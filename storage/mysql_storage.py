@@ -1,20 +1,10 @@
 import os
 import mysql.connector
 from mysql.connector import Error
-<<<<<<< HEAD
-=======
-from storage.base import InventoryStorage
->>>>>>> c099629f0a35ab142effad5544cc14a4f5af6ca4
-
 
 CONDITION_ENUM = "ENUM('Baik','Perlu Perbaikan','Rusak')"
 
-
-<<<<<<< HEAD
 class MySQLInventoryStorage():
-=======
-class MySQLInventoryStorage(InventoryStorage):
->>>>>>> c099629f0a35ab142effad5544cc14a4f5af6ca4
     def __init__(self, host, port, user, password, database):
         self.config = {
             "host": host,
