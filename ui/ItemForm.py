@@ -6,15 +6,12 @@ from textual.widgets import (
 )
 from textual.screen import ModalScreen
 from textual import on
-<<<<<<< HEAD
 from datetime import datetime
 
 
 def timestamp_now() -> str:
     return datetime.now().isoformat(timespec="seconds")
-=======
-from models.item import InventoryItem, timestamp_now
->>>>>>> c099629f0a35ab142effad5544cc14a4f5af6ca4
+
 
 CATEGORIES = [
     "Perangkat Keras", "Perangkat Lunak",
