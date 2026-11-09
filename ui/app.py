@@ -95,11 +95,19 @@ class InventoryApp(App):
     def refresh_table_columns(self):
         table = self.query_one("#inventory-table", DataTable)
         if self.mode == "lab":
+<<<<<<< HEAD
             columns = ["Nama Lab", "Jumlah Komputer", "Jumlah Item"]
         elif self.mode == "computer":
             columns = ["Lab", "Kode PC", "Monitor", "CPU", "Keyboard", "Mouse", "Kondisi", "Catatan"]
         else:
             columns = ["Lab", "Kode Item", "Nama Item", "Kondisi", "Catatan"]
+=======
+            columns = ["ID", "Nama Lab", "Jumlah Komputer", "Jumlah Item"]
+        elif self.mode == "computer":
+            columns = ["ID", "Lab", "Kode PC", "Monitor", "CPU", "Keyboard", "Mouse", "Kondisi", "Catatan"]
+        else:
+            columns = ["ID", "Lab", "Kode Item", "Nama Item", "Kondisi", "Catatan"]
+>>>>>>> c099629f0a35ab142effad5544cc14a4f5af6ca4
         table.clear(columns=True)
         table.add_columns(*columns)
 
@@ -116,6 +124,7 @@ class InventoryApp(App):
         table = self.query_one("#inventory-table", DataTable)
         for record in self.filtered_records:
             if self.mode == "lab":
+<<<<<<< HEAD
                 row = [record["nama_lab"], record["jumlah_komputer"], record["jumlah_item"]]
             elif self.mode == "computer":
                 row = [record["nama_lab"], record["kode_pc"], record["monitor"], record["cpu"],
@@ -124,6 +133,16 @@ class InventoryApp(App):
                 row = [record["nama_lab"], record["kode_item"], record["nama_item"],
                        record["kondisi"], record["catatan"]]
             table.add_row(*(str(value) for value in row))
+=======
+                row = [record["id"], record["nama_lab"], record["jumlah_komputer"], record["jumlah_item"]]
+            elif self.mode == "computer":
+                row = [record["id"], record["nama_lab"], record["kode_pc"], record["monitor"], record["cpu"],
+                       record["keyboard"], record["mouse"], record["kondisi"], record["catatan"]]
+            else:
+                row = [record["id"], record["nama_lab"], record["kode_item"], record["nama_item"],
+                       record["kondisi"], record["catatan"]]
+            table.add_row(*(str(value) for value in row), key=str(record["id"]))
+>>>>>>> c099629f0a35ab142effad5544cc14a4f5af6ca4
 
     @on(Input.Changed, "#search")
     def search_changed(self, event):
