@@ -95,11 +95,11 @@ class InventoryApp(App):
     def refresh_table_columns(self):
         table = self.query_one("#inventory-table", DataTable)
         if self.mode == "lab":
-            columns = ["ID", "Nama Lab", "Jumlah Komputer", "Jumlah Item"]
+            columns = ["Nama Lab", "Jumlah Komputer", "Jumlah Item"]
         elif self.mode == "computer":
-            columns = ["ID", "Lab", "Kode PC", "Monitor", "CPU", "Keyboard", "Mouse", "Kondisi", "Catatan"]
+            columns = ["Lab", "Kode PC", "Monitor", "CPU", "Keyboard", "Mouse", "Kondisi", "Catatan"]
         else:
-            columns = ["ID", "Lab", "Kode Item", "Nama Item", "Kondisi", "Catatan"]
+            columns = ["Lab", "Kode Item", "Nama Item", "Kondisi", "Catatan"]
         table.clear(columns=True)
         table.add_columns(*columns)
 
@@ -116,14 +116,14 @@ class InventoryApp(App):
         table = self.query_one("#inventory-table", DataTable)
         for record in self.filtered_records:
             if self.mode == "lab":
-                row = [record["id"], record["nama_lab"], record["jumlah_komputer"], record["jumlah_item"]]
+                row = [record["nama_lab"], record["jumlah_komputer"], record["jumlah_item"]]
             elif self.mode == "computer":
-                row = [record["id"], record["nama_lab"], record["kode_pc"], record["monitor"], record["cpu"],
+                row = [record["nama_lab"], record["kode_pc"], record["monitor"], record["cpu"],
                        record["keyboard"], record["mouse"], record["kondisi"], record["catatan"]]
             else:
-                row = [record["id"], record["nama_lab"], record["kode_item"], record["nama_item"],
+                row = [record["nama_lab"], record["kode_item"], record["nama_item"],
                        record["kondisi"], record["catatan"]]
-            table.add_row(*(str(value) for value in row), key=str(record["id"]))
+            table.add_row(*(str(value) for value in row))
 
     @on(Input.Changed, "#search")
     def search_changed(self, event):
