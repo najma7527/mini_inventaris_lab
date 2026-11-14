@@ -14,24 +14,15 @@ Aplikasi terminal interaktif menggunakan **Python + Textual** dan **MySQL**. Dat
 
 ```text
 lab_inventory/
+├── .gitignore
 ├── main.py
 ├── requirements.txt
-<<<<<<< HEAD
-=======
-├── .env.example
-├── models/
-│   └── item.py
->>>>>>> c099629f0a35ab142effad5544cc14a4f5af6ca4
 ├── storage/
-│   ├── base.py
-│   ├── json_storage.py
 │   └── mysql_storage.py
 ├── ui/
-│   └── app.py
-├── data/
-│   └── inventaris.json
-└── sql/
-    └── schema.sql
+│   ├── app.py
+│   ├── delete_dialog.py
+│   └── entity_form.py
 ```
 
 ## 1. Persiapan
@@ -68,9 +59,14 @@ pip install -r requirements.txt
 ## 2. Siapkan database MySQL
 
 1. Jalankan MySQL Server melalui MySQL Workbench, XAMPP, Laragon, atau layanan MySQL yang kamu gunakan.
-2. Buka MySQL Workbench, pilih koneksi lokal, lalu buka tab SQL baru.
-3. Salin dan jalankan seluruh isi file `sql/schema.sql`. File ini membuat database `lab_inventory` serta tabel `lab`, `komputer`, dan `item_lab`.
-4. Atur variabel lingkungan. Contoh untuk PowerShell:
+2. Buat database `lab_inventory` melalui MySQL Workbench atau jalankan perintah berikut:
+
+```sql
+CREATE DATABASE lab_inventory CHARACTER SET utf8mb4;
+```
+
+Tabel `lab`, `komputer`, dan `item_lab` akan dibuat otomatis saat aplikasi pertama kali dijalankan.
+3. Atur variabel lingkungan. Contoh untuk PowerShell:
 
 ```powershell
 $env:MYSQL_HOST="localhost"
@@ -85,7 +81,7 @@ Ganti `password_mysql_kamu` dengan password MySQL lokalmu. Jika akun MySQL tidak
 
 Jalankan `python main.py`. Program akan terhubung ke MySQL dan membuat tabel `lab`, `komputer`, dan `item_lab` secara otomatis jika belum tersedia. Jika gagal, periksa apakah MySQL Server sedang berjalan, kredensial benar, dan database sudah dibuat.
 
-## 4. Cara menggunakan aplikasi
+## 3. Cara menggunakan aplikasi
 
 - **Tambah**: klik tombol `＋ Tambah` atau tekan `A`.
 - **Cari**: ketik di kolom pencarian. Tabel terfilter secara langsung.
@@ -96,12 +92,13 @@ Jalankan `python main.py`. Program akan terhubung ke MySQL dan membuat tabel `la
 
 Pada terminal sempit, perbesar jendela terminal supaya semua kolom terlihat.
 
-## 5. Struktur data
+## 4. Struktur data
 
 - Lab memiliki `id` dan `nama_lab`; jumlah komputer serta item dihitung dari data terkait.
 - Komputer memiliki `id`, `id_lab`, `kode_pc`, `monitor`, `cpu`, `keyboard`, `mouse`, `kondisi`, dan `catatan`.
 - Item Lab memiliki `id`, `id_lab`, `kode_item`, `nama_item`, `kondisi`, dan `catatan`.
 - Semua enum kondisi menggunakan pilihan `Baik`, `Perlu Perbaikan`, atau `Rusak`.
+- Form tambah dan ubah menggunakan satu komponen yang dikonfigurasi dengan field sesuai jenis data di `ui/entity_form.py`.
 
 ## Catatan pengembangan
 

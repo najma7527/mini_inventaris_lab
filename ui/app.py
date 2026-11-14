@@ -1,10 +1,28 @@
+from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal
-from textual.widgets import Header, Footer, Static, Button, DataTable, Input
-from textual import on
+from textual.widgets import Button, DataTable, Footer, Header, Input, Static
 
-from ui.EntityForms import LabForm, ComputerForm, LabItemForm
-from ui.Delete import ConfirmDelete
+from ui.delete_dialog import ConfirmDelete
+from ui.entity_form import ENTITY_TITLES, EntityForm
+
+
+ENTITY_STORAGE = {"lab": "lab", "computer": "computer", "item": "lab_item"}
+LIST_METHODS = {
+    "lab": "list_labs",
+    "computer": "list_computers",
+    "item": "list_lab_items",
+}
+TABLE_COLUMNS = {
+    "lab": ("Nama Lab", "Jumlah Komputer", "Jumlah Item"),
+    "computer": ("Lab", "Kode PC", "Monitor", "CPU", "Keyboard", "Mouse", "Kondisi", "Catatan"),
+    "item": ("Lab", "Kode Item", "Nama Item", "Kondisi", "Catatan"),
+}
+TABLE_FIELDS = {
+    "lab": ("nama_lab", "jumlah_komputer", "jumlah_item"),
+    "computer": ("nama_lab", "kode_pc", "monitor", "cpu", "keyboard", "mouse", "kondisi", "catatan"),
+    "item": ("nama_lab", "kode_item", "nama_item", "kondisi", "catatan"),
+}
 
 
 class InventoryApp(App):
@@ -15,8 +33,7 @@ class InventoryApp(App):
     #top-summary { height: 5; padding: 1 2; background: #17243a; border: round #263b59; margin: 1 2 0 2; }
     #summary-line { color: #dbeafe; text-style: bold; }
     #summary-details { color: #93c5fd; }
-    #mode-bar { height: 3; margin: 1 2 0 2; }
-    #toolbar { height: 3; margin: 1 2 0 2; }
+    #mode-bar, #toolbar { height: 3; margin: 1 2 0 2; }
     #search { width: 1fr; }
     #table-wrap { width: 100%; height: 1fr; margin: 1 2; }
     DataTable { width: 100%; height: 1fr; }
@@ -69,203 +86,148 @@ class InventoryApp(App):
         yield Static("Pilih Lab, Komputer, atau Item Lab untuk mengelola data.", id="status")
         yield Footer()
 
-    def on_mount(self):
+    def on_mount(self) -> None:
         self.refresh_all()
 
-    def refresh_all(self):
+    def refresh_all(self) -> None:
         try:
             self.labs = self.storage.list_labs()
-            if self.mode == "lab":
-                self.records = self.labs
-            elif self.mode == "computer":
-                self.records = self.storage.list_computers()
-            else:
-                self.records = self.storage.list_lab_items()
+            self.records = getattr(self.storage, LIST_METHODS[self.mode])()
             self.apply_search()
-            lab_count = len(self.labs)
-            computer_count = sum(int(x["jumlah_komputer"] or 0) for x in self.labs)
-            item_count = sum(int(x["jumlah_item"] or 0) for x in self.labs)
             self.query_one("#summary-details", Static).update(
-                f"Lab: {lab_count}  •  Komputer: {computer_count}  •  Item lab: {item_count}"
+                f"Lab: {len(self.labs)}  •  "
+                f"Komputer: {sum(int(lab['jumlah_komputer'] or 0) for lab in self.labs)}  •  "
+                f"Item lab: {sum(int(lab['jumlah_item'] or 0) for lab in self.labs)}"
             )
             self.query_one("#status", Static).update(f"Data berhasil dimuat: {len(self.records)} baris.")
         except Exception as exc:
             self.query_one("#status", Static).update(f"Kesalahan membaca data: {exc}")
 
-    def refresh_table_columns(self):
-        table = self.query_one("#inventory-table", DataTable)
-        if self.mode == "lab":
-            columns = ["Nama Lab", "Jumlah Komputer", "Jumlah Item"]
-        elif self.mode == "computer":
-            columns = ["Lab", "Kode PC", "Monitor", "CPU", "Keyboard", "Mouse", "Kondisi", "Catatan"]
-        else:
-            columns = ["Lab", "Kode Item", "Nama Item", "Kondisi", "Catatan"]
-        table.clear(columns=True)
-        table.add_columns(*columns)
-
-    def apply_search(self):
+    def apply_search(self) -> None:
         term = self.query_one("#search", Input).value.strip().casefold()
-        if not term:
-            self.filtered_records = list(self.records)
-        else:
-            self.filtered_records = [
-                record for record in self.records
-                if any(term in str(value).casefold() for value in record.values())
-            ]
-        self.refresh_table_columns()
+        self.filtered_records = [
+            record for record in self.records
+            if not term or any(term in str(value).casefold() for value in record.values())
+        ]
         table = self.query_one("#inventory-table", DataTable)
+        table.clear(columns=True)
+        table.add_columns(*TABLE_COLUMNS[self.mode])
         for record in self.filtered_records:
-            if self.mode == "lab":
-                row = [record["nama_lab"], record["jumlah_komputer"], record["jumlah_item"]]
-            elif self.mode == "computer":
-                row = [record["nama_lab"], record["kode_pc"], record["monitor"], record["cpu"],
-                       record["keyboard"], record["mouse"], record["kondisi"], record["catatan"]]
-            else:
-                row = [record["nama_lab"], record["kode_item"], record["nama_item"],
-                       record["kondisi"], record["catatan"]]
-            table.add_row(*(str(value) for value in row))
+            table.add_row(*(str(record[field]) for field in TABLE_FIELDS[self.mode]))
+
     @on(Input.Changed, "#search")
-    def search_changed(self, event):
+    def search_changed(self, _event: Input.Changed) -> None:
         self.apply_search()
 
     @on(Button.Pressed, "#clear-search")
-    def clear_search(self, event):
+    def clear_search(self, _event: Button.Pressed) -> None:
         self.query_one("#search", Input).value = ""
 
-    def set_mode(self, mode):
+    def set_mode(self, mode: str) -> None:
         self.mode = mode
-        for mode_name in ("lab", "computer", "item"):
-            button = self.query_one(f"#mode-{mode_name}", Button)
-            button.variant = "primary" if mode_name == mode else "default"
+        for name in ENTITY_TITLES:
+            self.query_one(f"#mode-{name}", Button).variant = "primary" if name == mode else "default"
         self.refresh_all()
 
     @on(Button.Pressed, "#mode-lab")
-    def mode_lab(self, event):
+    def mode_lab(self, _event: Button.Pressed) -> None:
         self.set_mode("lab")
 
     @on(Button.Pressed, "#mode-computer")
-    def mode_computer(self, event):
+    def mode_computer(self, _event: Button.Pressed) -> None:
         self.set_mode("computer")
 
     @on(Button.Pressed, "#mode-item")
-    def mode_item(self, event):
+    def mode_item(self, _event: Button.Pressed) -> None:
         self.set_mode("item")
 
-    def selected_record(self):
+    def selected_record(self) -> dict | None:
         table = self.query_one("#inventory-table", DataTable)
-        if table.row_count == 0 or table.cursor_row is None:
-            return None
         index = table.cursor_row
-        if index < 0 or index >= len(self.filtered_records):
+        if index is None or index < 0 or index >= len(self.filtered_records):
             return None
         return self.filtered_records[index]
 
-    def action_add_record(self):
-        if self.mode == "lab":
-            self.push_screen(LabForm(), self.on_lab_result)
-        elif self.mode == "computer":
-            if not self.labs:
-                self.query_one("#status", Static).update("Tambahkan data Lab terlebih dahulu.")
-                return
-            self.push_screen(ComputerForm(self.labs), self.on_computer_result)
-        else:
-            if not self.labs:
-                self.query_one("#status", Static).update("Tambahkan data Lab terlebih dahulu.")
-                return
-            self.push_screen(LabItemForm(self.labs), self.on_item_result)
+    def action_add_record(self) -> None:
+        self.open_form()
 
     @on(Button.Pressed, "#add")
-    def add_button(self, event):
+    def add_button(self, _event: Button.Pressed) -> None:
         self.action_add_record()
 
-    def action_edit_record(self):
+    def action_edit_record(self) -> None:
         record = self.selected_record()
-        if not record:
-            self.query_one("#status", Static).update("Belum ada baris yang dipilih.")
+        if record is None:
+            self.show_status("Belum ada baris yang dipilih.")
             return
-        if self.mode == "lab":
-            self.push_screen(LabForm(record), lambda result: self.on_lab_result(result, record["id"]))
-        elif self.mode == "computer":
-            self.push_screen(ComputerForm(self.labs, record), lambda result: self.on_computer_result(result, record["id"]))
-        else:
-            self.push_screen(LabItemForm(self.labs, record), lambda result: self.on_item_result(result, record["id"]))
+        self.open_form(record)
 
     @on(Button.Pressed, "#edit")
-    def edit_button(self, event):
+    def edit_button(self, _event: Button.Pressed) -> None:
         self.action_edit_record()
 
-    def action_delete_record(self):
-        record = self.selected_record()
-        if not record:
-            self.query_one("#status", Static).update("Belum ada baris yang dipilih.")
+    def open_form(self, record: dict | None = None) -> None:
+        entity = self.mode
+        if entity != "lab" and not self.labs:
+            self.show_status("Tambahkan data Lab terlebih dahulu.")
             return
-        label = record["nama_lab"] if self.mode == "lab" else record.get("kode_pc", record.get("nama_item", "data"))
-        title = "HAPUS DATA LAB" if self.mode == "lab" else "HAPUS DATA KOMPUTER" if self.mode == "computer" else "HAPUS ITEM LAB"
-        self.push_screen(ConfirmDelete(title, f"Yakin menghapus '{label}'?"), lambda confirmed: self.on_delete_result(record, confirmed))
+        record_id = record["id"] if record else None
+        self.push_screen(
+            EntityForm(entity, self.labs, record),
+            lambda result: self.on_form_result(entity, result, record_id),
+        )
+
+    def on_form_result(self, entity: str, result: dict | None, record_id: int | None = None) -> None:
+        if result is None:
+            return
+        action = "add" if record_id is None else "update"
+        method = getattr(self.storage, f"{action}_{ENTITY_STORAGE[entity]}")
+        try:
+            if record_id is None:
+                method(result)
+            else:
+                method(record_id, result)
+            self.refresh_all()
+        except Exception as exc:
+            self.show_status(f"Gagal menyimpan {ENTITY_TITLES[entity].lower()}: {exc}")
+
+    def action_delete_record(self) -> None:
+        record = self.selected_record()
+        if record is None:
+            self.show_status("Belum ada baris yang dipilih.")
+            return
+        entity = self.mode
+        if entity == "lab":
+            label = record["nama_lab"]
+        elif entity == "computer":
+            label = f"{record['nama_lab']} ({record['kode_pc']})"
+        else:
+            label = f"{record['nama_item']} ({record['kode_item']})"
+        title = f"HAPUS DATA {ENTITY_TITLES[entity].upper()}"
+        self.push_screen(
+            ConfirmDelete(title, f"Yakin menghapus '{label}'?"),
+            lambda confirmed: self.on_delete_result(entity, record, confirmed),
+        )
 
     @on(Button.Pressed, "#delete")
-    def delete_button(self, event):
+    def delete_button(self, _event: Button.Pressed) -> None:
         self.action_delete_record()
 
-    def on_lab_result(self, result, record_id=None):
-        if result is None:
-            return
-        try:
-            if record_id is None:
-                self.storage.add_lab(result)
-            else:
-                self.storage.update_lab(record_id, result)
-            self.refresh_all()
-        except Exception as exc:
-            self.query_one("#status", Static).update(f"Gagal menyimpan lab: {exc}")
-
-    def on_computer_result(self, result, record_id=None):
-        if result is None:
-            return
-        try:
-            if record_id is None:
-                self.storage.add_computer(result)
-            else:
-                self.storage.update_computer(record_id, result)
-            self.refresh_all()
-        except Exception as exc:
-            self.query_one("#status", Static).update(f"Gagal menyimpan komputer: {exc}")
-
-    def on_item_result(self, result, record_id=None):
-        if result is None:
-            return
-        try:
-            if record_id is None:
-                self.storage.add_lab_item(result)
-            else:
-                self.storage.update_lab_item(record_id, result)
-            self.refresh_all()
-        except Exception as exc:
-            self.query_one("#status", Static).update(f"Gagal menyimpan item lab: {exc}")
-
-    def on_delete_result(self, record, confirmed):
+    def on_delete_result(self, entity: str, record: dict, confirmed: bool) -> None:
         if not confirmed:
             return
         try:
-            if self.mode == "lab":
-                self.storage.delete_lab(record["id"])
-            elif self.mode == "computer":
-                self.storage.delete_computer(record["id"])
-            else:
-                self.storage.delete_lab_item(record["id"])
+            getattr(self.storage, f"delete_{ENTITY_STORAGE[entity]}")(record["id"])
             self.refresh_all()
         except Exception as exc:
-            self.query_one("#status", Static).update(f"Gagal menghapus data: {exc}")
+            self.show_status(f"Gagal menghapus data: {exc}")
 
     @on(Button.Pressed, "#refresh")
-    def refresh_button(self, event):
+    def refresh_button(self, _event: Button.Pressed) -> None:
         self.refresh_all()
 
-    def action_refresh(self):
+    def action_refresh(self) -> None:
         self.refresh_all()
 
-    def on_unmount(self):
-        try:
-            self.storage.close()
-        except Exception:
-            pass
+    def show_status(self, message: str) -> None:
+        self.query_one("#status", Static).update(message)

@@ -31,10 +31,10 @@ class ConfirmDelete(ModalScreen):
         )
 
     @on(Button.Pressed, "#yes")
-    def yes(self, event):
+    def yes(self, _event):
         self.dismiss(True)
 
     @on(Button.Pressed, "#no")
-    def no(self, event):
+    def no(self, _event):
         self.dismiss(False)
 
